@@ -1,5 +1,6 @@
 """Lógica general del juego: menú, estado del jugador, salas y puntaje."""
 
+import persistencia
 from salas import (
     sala1_vestibulo,
     sala2_estanterias,
@@ -74,6 +75,18 @@ def calcular_puntaje(estado):
     return round(puntaje, 1)
 
 
+def guardar_progreso(estado):
+    """Guarda la partida y los fragmentos en sus archivos.
+
+    Parámetros:
+        estado (dict): estado de la partida.
+    Devuelve:
+        None.
+    """
+    persistencia.guardar_partida(estado)
+    persistencia.guardar_fragmentos(estado["inventario"])
+
+
 def recorrer_salas(estado):
     """Juega en orden las salas pendientes desde la sala actual.
 
@@ -93,6 +106,7 @@ def recorrer_salas(estado):
 
         jugador["nivel"] += 1
         jugador["puntaje"] = calcular_puntaje(estado)
+        guardar_progreso(estado)
 
     return True
 
@@ -117,7 +131,7 @@ def mostrar_resumen(estado):
 
 
 def terminar_partida(estado, salas_terminadas):
-    """Calcula el puntaje final y muestra el cierre de la partida.
+    """Calcula el puntaje final, lo guarda y muestra el cierre de la partida.
 
     Parámetros:
         estado (dict): estado de la partida.
@@ -126,6 +140,8 @@ def terminar_partida(estado, salas_terminadas):
         None.
     """
     estado["jugador"]["puntaje"] = calcular_puntaje(estado)
+    guardar_progreso(estado)
+    persistencia.registrar_puntaje(estado)
 
     if salas_terminadas:
         print("\n¡Superaste las cinco salas del Archivo!")
@@ -162,6 +178,56 @@ def nueva_partida():
     jugar_partida(estado)
 
 
+def partida_terminada(estado):
+    """Indica si una partida ya acabó, por vidas o por completar las salas.
+
+    Parámetros:
+        estado (dict): estado de la partida.
+    Devuelve:
+        bool: True si la partida ya no se puede continuar.
+    """
+    jugador = estado["jugador"]
+    return jugador["vida"] <= 0 or jugador["nivel"] > len(SALAS)
+
+
+def cargar_partida():
+    """Carga la partida guardada y la continúa desde su sala actual.
+
+    Parámetros: ninguno.
+    Devuelve: None.
+    """
+    estado = persistencia.cargar_partida()
+
+    if estado is None:
+        print("No hay una partida guardada o el archivo está dañado.")
+    elif partida_terminada(estado):
+        print("La partida guardada ya terminó. Empieza una nueva.")
+    else:
+        jugador = estado["jugador"]
+        print(f"Hola de nuevo, {jugador['nombre']}. Continúas en la sala {jugador['nivel']}.")
+        jugar_partida(estado)
+
+
+def ver_puntajes():
+    """Muestra la tabla de puntajes de mayor a menor.
+
+    Parámetros: ninguno.
+    Devuelve: None.
+    """
+    puntajes = persistencia.leer_puntajes()
+
+    if len(puntajes) == 0:
+        print("Aún no hay puntajes.")
+        return
+
+    print(f"\n{'Nombre':<20}{'Puntaje':>8}{'Fragmentos':>12}{'Intentos':>10}  Fecha")
+    for fila in puntajes:
+        print(
+            f"{fila['nombre'][:19]:<20}{fila['puntaje']:>8.1f}"
+            f"{fila['fragmentos_validos']:>12}{fila['intentos']:>10}  {fila['fecha']}"
+        )
+
+
 def menu_principal():
     """Muestra el menú principal hasta que el jugador decida salir.
 
@@ -176,8 +242,10 @@ def menu_principal():
 
         if opcion == 0:
             nueva_partida()
-        elif opcion == 1 or opcion == 2:
-            print("Esta opción se habilita cuando se conecte la persistencia.")
+        elif opcion == 1:
+            cargar_partida()
+        elif opcion == 2:
+            ver_puntajes()
         else:
             print("Hasta pronto.")
             break
