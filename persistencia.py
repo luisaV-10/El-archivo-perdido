@@ -12,7 +12,7 @@ RUTA_FRAGMENTOS = os.path.join(CARPETA_DATOS, "fragmentos.json")
 RUTA_PUNTAJES = os.path.join(CARPETA_DATOS, "puntajes.csv")
 
 COLUMNAS_PUNTAJES = ["nombre", "puntaje", "fragmentos_validos", "intentos", "fecha"]
-NIVEL_MAXIMO = 6
+NIVEL_MAXIMO = 7
 
 # Errores posibles al leer un JSON que no existe, está dañado o fue alterado.
 ERRORES_DE_LECTURA = (

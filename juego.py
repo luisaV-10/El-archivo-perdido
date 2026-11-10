@@ -7,6 +7,7 @@ from salas import (
     sala3_mapas,
     sala4_fichas,
     sala5_sellos,
+    sala_central,
 )
 from utilidades import pedir_opcion, pedir_texto
 
@@ -17,6 +18,17 @@ SALAS = [
     sala3_mapas,
     sala4_fichas,
     sala5_sellos,
+    sala_central,
+]
+
+RETROALIMENTACION = [
+    "Variables y tipos: convertir el texto a int, float o bool permite operar con él.",
+    "Listas: guardan elementos en orden y se pueden insertar, quitar y ordenar.",
+    "Tuplas: son inmutables, por eso sirven para coordenadas y ubicaciones fijas.",
+    "Diccionarios: encuentran un dato por su clave sin recorrer todo.",
+    "Conjuntos: eliminan los repetidos y comparan grupos con unión, intersección y diferencia.",
+    "Archivos: JSON y CSV guardan la partida y los puntajes entre ejecuciones.",
+    "Árbol binario de búsqueda: busca bajando por un camino y su inorden sale ordenado.",
 ]
 
 
@@ -78,13 +90,17 @@ def calcular_puntaje(estado):
 def guardar_progreso(estado):
     """Guarda la partida y los fragmentos en sus archivos.
 
+    Después de la Sala Central, fragmentos.json ya tiene el catálogo depurado
+    y con ubicación, así que no se reemplaza con el inventario.
+
     Parámetros:
         estado (dict): estado de la partida.
     Devuelve:
         None.
     """
     persistencia.guardar_partida(estado)
-    persistencia.guardar_fragmentos(estado["inventario"])
+    if estado["jugador"]["nivel"] <= len(SALAS):
+        persistencia.guardar_fragmentos(estado["inventario"])
 
 
 def recorrer_salas(estado):
@@ -120,14 +136,36 @@ def mostrar_resumen(estado):
         None.
     """
     jugador = estado["jugador"]
+    total_principales = len(sala_central.CODIGOS_PRINCIPALES)
+    validos = persistencia.contar_fragmentos_validos(estado["inventario"])
+    duplicados = len(estado["inventario"]) - validos
+
+    if jugador["catalogo_completo"]:
+        catalogo = "sí"
+    else:
+        catalogo = "no"
+
     print("\n--- Resumen de la partida ---")
     print(f"Jugador: {jugador['nombre']}")
-    print(f"Fragmentos recolectados: {len(estado['inventario'])}")
-    print(f"Fragmentos principales: {contar_principales(estado)} de {len(SALAS)}")
+    print(f"Fragmentos válidos: {validos}")
+    print(f"Duplicados descartados: {duplicados}")
+    print(f"Fragmentos principales: {contar_principales(estado)} de {total_principales}")
     print(f"Preguntas acertadas: {estado['preguntas_ok']}")
     print(f"Vidas restantes: {jugador['vida']}")
     print(f"Intentos fallidos: {estado['intentos_fallidos']}")
+    print(f"Catálogo completo: {catalogo}")
     print(f"Puntaje: {jugador['puntaje']}")
+
+
+def mostrar_retroalimentacion():
+    """Muestra un repaso de una línea por cada estructura de datos del juego.
+
+    Parámetros: ninguno.
+    Devuelve: None.
+    """
+    print("\n--- Lo que aprendiste ---")
+    for linea in RETROALIMENTACION:
+        print(f"- {linea}")
 
 
 def terminar_partida(estado, salas_terminadas):
@@ -144,15 +182,13 @@ def terminar_partida(estado, salas_terminadas):
     persistencia.registrar_puntaje(estado)
 
     if salas_terminadas:
-        print("\n¡Superaste las cinco salas del Archivo!")
+        print("\n¡Recorriste todo el Archivo y reconstruiste el catálogo!")
     else:
         print("\nTe quedaste sin vidas. La partida termina aquí.")
         print("Repasa los temas de la sala donde te detuviste y vuelve a intentarlo.")
 
     mostrar_resumen(estado)
-
-    if salas_terminadas:
-        print("\nLa Sala Central se habilita en la próxima versión.")
+    mostrar_retroalimentacion()
 
 
 def jugar_partida(estado):
@@ -204,7 +240,11 @@ def cargar_partida():
         print("La partida guardada ya terminó. Empieza una nueva.")
     else:
         jugador = estado["jugador"]
-        print(f"Hola de nuevo, {jugador['nombre']}. Continúas en la sala {jugador['nivel']}.")
+        if jugador["nivel"] == len(SALAS):
+            lugar = "la Sala Central"
+        else:
+            lugar = f"la sala {jugador['nivel']}"
+        print(f"Hola de nuevo, {jugador['nombre']}. Continúas en {lugar}.")
         jugar_partida(estado)
 
 
