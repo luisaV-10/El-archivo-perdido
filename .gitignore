@@ -2,3 +2,5 @@ __pycache__/
 .venv/
 datos/partida.json
 datos/puntajes.csv
+datos/fragmentos.json
+~$*
